@@ -1,0 +1,4 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="accessibility_description">OXYGEN uses this only when you ask it to open an app or check what\'s on your screen. It never acts on its own, and never reads banking, payment, or one-time-code apps.</string>
+</resources>
