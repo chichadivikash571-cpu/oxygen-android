@@ -18,6 +18,7 @@ class MainActivity : Activity() {
 
     companion object {
         const val HOST = "oxygen.chichadivikash571.workers.dev"
+        const val FILE_CHOOSER_REQUEST = 4715
         const val WEB_MIC_REQUEST = 4712
         const val BG_MIC_REQUEST = 4713
         const val BG_NOTIFY_REQUEST = 4714
@@ -26,6 +27,7 @@ class MainActivity : Activity() {
     private lateinit var web: WebView
     private var voice: NativeVoice? = null
     private var pendingWebPermission: PermissionRequest? = null
+    private var pendingFileCallback: android.webkit.ValueCallback<Array<Uri>>? = null
     private var pageReady = false
     private var assistPending = false
 
@@ -44,6 +46,24 @@ class MainActivity : Activity() {
         web.webChromeClient = object : WebChromeClient() {
             override fun onPermissionRequest(request: PermissionRequest) {
                 runOnUiThread { handleWebPermission(request) }
+            }
+
+            // Required for HTML file inputs inside Android WebView.
+            override fun onShowFileChooser(
+                webView: WebView,
+                filePathCallback: android.webkit.ValueCallback<Array<Uri>>,
+                fileChooserParams: WebChromeClient.FileChooserParams
+            ): Boolean {
+                pendingFileCallback?.onReceiveValue(null)
+                pendingFileCallback = filePathCallback
+                return try {
+                    startActivityForResult(fileChooserParams.createIntent(), FILE_CHOOSER_REQUEST)
+                    true
+                } catch (_: Exception) {
+                    pendingFileCallback?.onReceiveValue(null)
+                    pendingFileCallback = null
+                    false
+                }
             }
         }
 
@@ -147,6 +167,21 @@ class MainActivity : Activity() {
     fun notifyBackgroundChanged() {
         runOnUiThread {
             web.evaluateJavascript("window.oxygenBackgroundChanged && window.oxygenBackgroundChanged()", null)
+        }
+    }
+
+    @Suppress("DEPRECATION")
+    override fun onActivityResult(requestCode: Int, resultCode: Int, data: Intent?) {
+        super.onActivityResult(requestCode, resultCode, data)
+        if (requestCode == FILE_CHOOSER_REQUEST) {
+            val callback = pendingFileCallback
+            pendingFileCallback = null
+            if (callback != null) {
+                val results = if (resultCode == RESULT_OK) {
+                    WebChromeClient.FileChooserParams.parseResult(resultCode, data)
+                } else null
+                callback.onReceiveValue(results)
+            }
         }
     }
 
