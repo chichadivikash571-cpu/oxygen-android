@@ -51,6 +51,21 @@ class OverlayActivity : Activity() {
             override fun shouldOverrideUrlLoading(view: WebView, request: WebResourceRequest): Boolean {
                 return request.url.host != MainActivity.HOST
             }
+
+            override fun onPageFinished(view: WebView, url: String?) {
+                super.onPageFinished(view, url)
+                if (url != null && android.net.Uri.parse(url).host == MainActivity.HOST) {
+                    // The earbuds/system assistant opens this overlay directly. Start the
+                    // site's assistant flow after its JavaScript has loaded, so the user
+                    // does not have to tap the globe to begin speaking.
+                    view.postDelayed({
+                        view.evaluateJavascript(
+                            "window.oxygenAssist && window.oxygenAssist()",
+                            null
+                        )
+                    }, 900)
+                }
+            }
         }
 
         val nativeVoice = NativeVoice(this, web)
