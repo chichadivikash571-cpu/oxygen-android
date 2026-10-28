@@ -45,6 +45,7 @@ class NativeVoice(private val activity: Activity, private val web: WebView) {
     private var rate = 1.0f
     private var speakToken = 0
     private var groupId = ""
+    private var lastSpeechLang: String? = null
 
     private var recognizer: SpeechRecognizer? = null
     private var pendingLang: String? = null
@@ -170,6 +171,7 @@ class NativeVoice(private val activity: Activity, private val web: WebView) {
     private fun stopAll() {
         speakToken++
         queue.clear()
+        lastSpeechLang = null
         voices.values.forEach { it.engine?.stop() }
     }
 
@@ -202,6 +204,17 @@ class NativeVoice(private val activity: Activity, private val web: WebView) {
             handler.postDelayed({ if (token == speakToken) playNext(tries + 1) }, 250)
             return
         }
+        // Give Android TTS a short hand-off when switching between English and Telugu.
+        // This lets the next language engine settle without adding a pause between same-language chunks.
+        val previousLang = lastSpeechLang
+        if (previousLang != null && previousLang != item.first) {
+            lastSpeechLang = item.first
+            queue.addFirst(item)
+            val token = speakToken
+            handler.postDelayed({ if (token == speakToken) playNext() }, 220)
+            return
+        }
+        lastSpeechLang = item.first
         engine.setPitch(pitch)
         engine.setSpeechRate(rate)
         val speechParams = Bundle().apply {
