@@ -4,6 +4,7 @@ import android.Manifest
 import android.app.Activity
 import android.content.Intent
 import android.content.pm.PackageManager
+import android.media.AudioAttributes
 import android.os.Bundle
 import android.os.Handler
 import android.os.Looper
@@ -79,17 +80,39 @@ class NativeVoice(private val activity: Activity, private val web: WebView) {
         voices[tag] = v
         v.engine = TextToSpeech(activity) { status ->
             val e = v.engine
-            if (status == TextToSpeech.SUCCESS && e != null) {
-                val r = e.setLanguage(Locale.forLanguageTag(tag))
-                if (r == TextToSpeech.LANG_MISSING_DATA || r == TextToSpeech.LANG_NOT_SUPPORTED) {
-                    v.failed = true
-                } else {
-                    e.setOnUtteranceProgressListener(progress)
-                    e.playSilentUtterance(1, TextToSpeech.QUEUE_ADD, "warm-$tag")
-                    v.ready = true
-                }
-            } else {
+            if (status != TextToSpeech.SUCCESS || e == null) {
                 v.failed = true
+                return@TextToSpeech
+            }
+
+            // Explicit speech audio attributes help the assistant route speech to the normal
+            // media/accessibility output instead of depending on a device-specific TTS default.
+            try {
+                e.setAudioAttributes(
+                    AudioAttributes.Builder()
+                        .setUsage(AudioAttributes.USAGE_ASSISTANCE_ACCESSIBILITY)
+                        .setContentType(AudioAttributes.CONTENT_TYPE_SPEECH)
+                        .build()
+                )
+            } catch (_: Exception) {
+            }
+
+            // Use the requested locale first, then a known English voice if the device has no
+            // installed voice data for that locale. Previously this silently skipped every
+            // segment when (for example) en-IN or te-IN voice data was missing.
+            val requested = Locale.forLanguageTag(tag)
+            var result = e.setLanguage(requested)
+            if (result == TextToSpeech.LANG_MISSING_DATA || result == TextToSpeech.LANG_NOT_SUPPORTED) {
+                result = e.setLanguage(Locale.UK)
+            }
+            if (result == TextToSpeech.LANG_MISSING_DATA || result == TextToSpeech.LANG_NOT_SUPPORTED) {
+                result = e.setLanguage(Locale.US)
+            }
+            if (result == TextToSpeech.LANG_MISSING_DATA || result == TextToSpeech.LANG_NOT_SUPPORTED) {
+                v.failed = true
+            } else {
+                e.setOnUtteranceProgressListener(progress)
+                v.ready = true
             }
         }
         return v
