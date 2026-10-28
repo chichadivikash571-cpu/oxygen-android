@@ -204,7 +204,10 @@ class NativeVoice(private val activity: Activity, private val web: WebView) {
         }
         engine.setPitch(pitch)
         engine.setSpeechRate(rate)
-        val result = engine.speak(item.second, TextToSpeech.QUEUE_FLUSH, null, "$speakToken:${queue.size}")
+        val speechParams = Bundle().apply {
+            putFloat(TextToSpeech.Engine.KEY_PARAM_VOLUME, 1.0f)
+        }
+        val result = engine.speak(item.second, TextToSpeech.QUEUE_FLUSH, speechParams, "$speakToken:${queue.size}")
         if (result == TextToSpeech.ERROR) playNext()
     }
 
