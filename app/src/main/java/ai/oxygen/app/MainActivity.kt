@@ -91,6 +91,7 @@ class MainActivity : Activity() {
                         null
                     )
                     pageReady = true
+                    view.postDelayed({ refreshPushToken() }, 1200)
                     if (assistPending) {
                         assistPending = false
                         view.postDelayed({ runAssist() }, 1800)
@@ -104,6 +105,7 @@ class MainActivity : Activity() {
         web.addJavascriptInterface(nativeVoice, "OxygenNative")
         web.addJavascriptInterface(BackgroundBridge(this), "OxygenBackground")
         web.addJavascriptInterface(DeviceBridge(this), "OxygenDevice")
+        web.addJavascriptInterface(OxygenPushBridge(this), "OxygenPush")
 
         if (savedInstanceState != null) {
             web.restoreState(savedInstanceState)
@@ -119,9 +121,29 @@ class MainActivity : Activity() {
         web.evaluateJavascript("window.oxygenAssist && window.oxygenAssist()", null)
     }
 
+    /** Refreshes the FCM token, then lets the signed-in OXYGEN page register it securely. */
+    private fun refreshPushToken() {
+        OxygenPushManager.refreshToken(this) {
+            runOnUiThread {
+                if (pageReady && !isFinishing && ::web.isInitialized) {
+                    web.evaluateJavascript(
+                        "window.oxygenRegisterNativePush && window.oxygenRegisterNativePush()",
+                        null
+                    )
+                }
+            }
+        }
+    }
+
     override fun onNewIntent(intent: Intent?) {
         super.onNewIntent(intent)
         setIntent(intent)
+        val requestedPath = intent?.getStringExtra(OxygenCallIntents.EXTRA_OPEN_PATH)
+        if (requestedPath != null) {
+            val safePath = if (requestedPath == "/scheduler.html" || requestedPath == "/assistant.html") requestedPath else "/"
+            if (::web.isInitialized) web.loadUrl("https://$HOST$safePath")
+            return
+        }
         if (isAssist(intent)) {
             if (pageReady) web.postDelayed({ runAssist() }, 400) else assistPending = true
         }
@@ -210,6 +232,7 @@ class MainActivity : Activity() {
         super.onResume()
         notifyBackgroundChanged()
         web.evaluateJavascript("window.oxygenDeviceChanged && window.oxygenDeviceChanged()", null)
+        if (pageReady) refreshPushToken()
     }
 
     override fun onSaveInstanceState(outState: Bundle) {
