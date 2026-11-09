@@ -37,6 +37,14 @@ jobs:
             git push origin HEAD:main
           fi
 
+      - name: Configure Firebase app (optional)
+        env:
+          FIREBASE_GOOGLE_SERVICES_JSON: ${{ secrets.FIREBASE_GOOGLE_SERVICES_JSON }}
+        run: |
+          if [ -n "$FIREBASE_GOOGLE_SERVICES_JSON" ]; then
+            printf '%s' "$FIREBASE_GOOGLE_SERVICES_JSON" > app/google-services.json
+          fi
+
       - name: Build APK
         run: gradle assembleDebug --no-daemon --stacktrace -Dorg.gradle.jvmargs=-Xmx2g
 
