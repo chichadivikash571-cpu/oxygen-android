@@ -86,12 +86,13 @@ class NativeVoice(private val activity: Activity, private val web: WebView) {
                 return@TextToSpeech
             }
 
-            // Explicit speech audio attributes help the assistant route speech to the normal
-            // media/accessibility output instead of depending on a device-specific TTS default.
+            // OXYGEN is an assistant, not an accessibility service. Use Android's
+            // assistant speech usage so audio routing is classified correctly by
+            // the system and Bluetooth devices.
             try {
                 e.setAudioAttributes(
                     AudioAttributes.Builder()
-                        .setUsage(AudioAttributes.USAGE_ASSISTANCE_ACCESSIBILITY)
+                        .setUsage(AudioAttributes.USAGE_ASSISTANT)
                         .setContentType(AudioAttributes.CONTENT_TYPE_SPEECH)
                         .build()
                 )
@@ -99,8 +100,8 @@ class NativeVoice(private val activity: Activity, private val web: WebView) {
             }
 
             // Use the requested locale first, then a known English voice if the device has no
-            // installed voice data for that locale. Previously this silently skipped every
-            // segment when (for example) en-IN or te-IN voice data was missing.
+            // installed voice data for that locale. This silently skipped every segment when
+            // voice data for en-IN or te-IN was missing.
             val requested = Locale.forLanguageTag(tag)
             var result = e.setLanguage(requested)
             if (result == TextToSpeech.LANG_MISSING_DATA || result == TextToSpeech.LANG_NOT_SUPPORTED) {
