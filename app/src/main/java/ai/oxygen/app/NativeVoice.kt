@@ -86,13 +86,10 @@ class NativeVoice(private val activity: Activity, private val web: WebView) {
                 return@TextToSpeech
             }
 
-            // OXYGEN is an assistant, not an accessibility service. Use Android's
-            // assistant speech usage so audio routing is classified correctly by
-            // the system and Bluetooth devices.
             try {
                 e.setAudioAttributes(
                     AudioAttributes.Builder()
-                        .setUsage(AudioAttributes.USAGE_ASSISTANT)
+                        .setUsage(AudioAttributes.USAGE_ASSISTANCE_ACCESSIBILITY)
                         .setContentType(AudioAttributes.CONTENT_TYPE_SPEECH)
                         .build()
                 )
