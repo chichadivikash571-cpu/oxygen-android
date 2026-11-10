@@ -42,6 +42,15 @@ jobs:
             git push origin HEAD:main
           fi
 
+      - name: Verify OneSignal configuration
+        env:
+          ONESIGNAL_APP_ID: ${{ secrets.ONESIGNAL_APP_ID }}
+        run: |
+          if [ -z "$ONESIGNAL_APP_ID" ]; then
+            echo "::error::Add the ONESIGNAL_APP_ID GitHub Actions secret before building a push-enabled APK."
+            exit 1
+          fi
+
       - name: Build APK
         env:
           ONESIGNAL_APP_ID: ${{ secrets.ONESIGNAL_APP_ID }}

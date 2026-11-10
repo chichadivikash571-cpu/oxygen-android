@@ -24,6 +24,7 @@
     </queries>
 
     <application
+        android:name=".OxygenApplication"
         android:label="OXYGEN"
         android:allowBackup="false"
         android:usesCleartextTraffic="false"
