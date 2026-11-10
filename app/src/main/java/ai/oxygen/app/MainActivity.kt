@@ -110,6 +110,7 @@ class MainActivity : Activity() {
         web.addJavascriptInterface(BackgroundBridge(this), "OxygenBackground")
         web.addJavascriptInterface(DeviceBridge(this), "OxygenDevice")
         web.addJavascriptInterface(PushBridge(this), "OxygenPush")
+        web.addJavascriptInterface(ReminderBridge(this), "OxygenReminders")
 
         if (savedInstanceState != null) {
             web.restoreState(savedInstanceState)
