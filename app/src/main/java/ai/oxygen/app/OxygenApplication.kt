@@ -10,6 +10,7 @@ import com.onesignal.notifications.INotificationClickListener
 class OxygenApplication : Application() {
     override fun onCreate() {
         super.onCreate()
+        ReminderSyncWork.schedule(this)
 
         val appId = BuildConfig.ONESIGNAL_APP_ID.trim()
         if (appId.isBlank()) {
@@ -23,13 +24,9 @@ class OxygenApplication : Application() {
                 val notification = event.notification
                 val data = notification.additionalData
                 if (data?.optString("oxygen_type") != "scheduled_reminder") return
-
-                val reminderText = notification.body.orEmpty()
                 val open = Intent(this@OxygenApplication, MainActivity::class.java).apply {
-                    flags = Intent.FLAG_ACTIVITY_NEW_TASK or
-                        Intent.FLAG_ACTIVITY_CLEAR_TOP or
-                        Intent.FLAG_ACTIVITY_SINGLE_TOP
-                    putExtra(MainActivity.EXTRA_REMINDER_TEXT, reminderText)
+                    flags = Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TOP or Intent.FLAG_ACTIVITY_SINGLE_TOP
+                    putExtra(MainActivity.EXTRA_REMINDER_TEXT, notification.body.orEmpty())
                 }
                 startActivity(open)
             }
