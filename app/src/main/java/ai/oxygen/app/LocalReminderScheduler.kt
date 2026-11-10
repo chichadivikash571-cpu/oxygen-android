@@ -5,6 +5,7 @@ import android.app.PendingIntent
 import android.content.Context
 import android.content.Intent
 import android.os.Build
+import android.content.pm.PackageManager
 import org.json.JSONArray
 import org.json.JSONObject
 import java.time.Instant
@@ -124,6 +125,7 @@ object LocalReminderScheduler {
     }
 
     private fun showNotification(context: Context, id: String, title: String, whenText: String) {
+        if (Build.VERSION.SDK_INT >= 33 && context.checkSelfPermission(android.Manifest.permission.POST_NOTIFICATIONS) != PackageManager.PERMISSION_GRANTED) return
         val manager = context.getSystemService(android.app.NotificationManager::class.java)
         val channelId = "oxygen_local_reminders"
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O &&
