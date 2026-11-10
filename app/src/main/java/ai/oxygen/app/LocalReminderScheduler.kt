@@ -30,11 +30,13 @@ object LocalReminderScheduler {
             val whenText = item.optString("next_run_at")
             if (id.isBlank() || title.isBlank() || whenText.isBlank()) continue
             val epoch = try { Instant.parse(whenText).toEpochMilli() } catch (_: Exception) { continue }
-            if (epoch <= System.currentTimeMillis() - 60_000L) continue
+            val now = System.currentTimeMillis()
+            val fireAt = if (epoch <= now) now + 1_000L else epoch
             clean.put(JSONObject().apply {
                 put("id", id)
                 put("title", title)
                 put("next_run_at", whenText)
+                put("fire_at", Instant.ofEpochMilli(fireAt).toString())
                 put("schedule_type", item.optString("schedule_type", "once"))
                 put("schedule_config", item.optJSONObject("schedule_config") ?: JSONObject())
                 put("timezone", item.optString("timezone", "Asia/Kolkata"))
@@ -77,6 +79,7 @@ object LocalReminderScheduler {
             val next = nextRecurring(item, scheduledFor)
             if (next != null) {
                 item.put("next_run_at", next)
+                item.put("fire_at", next)
                 updated.put(item)
                 schedule(context, item)
             }
@@ -88,8 +91,9 @@ object LocalReminderScheduler {
         val id = item.optString("id")
         val title = item.optString("title")
         val whenText = item.optString("next_run_at")
-        val epoch = try { Instant.parse(whenText).toEpochMilli() } catch (_: Exception) { return }
-        if (epoch <= System.currentTimeMillis() - 60_000L) return
+        val fireAtText = item.optString("fire_at", whenText)
+        val parsedEpoch = try { Instant.parse(fireAtText).toEpochMilli() } catch (_: Exception) { return }
+        val epoch = maxOf(parsedEpoch, System.currentTimeMillis() + 1_000L)
 
         val alarm = context.getSystemService(AlarmManager::class.java)
         val pending = pendingIntent(context, id, title, whenText)
