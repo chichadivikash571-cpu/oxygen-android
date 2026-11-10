@@ -3,6 +3,10 @@ name: Build OXYGEN APK
 on:
   push:
     branches: [main]
+    paths-ignore:
+      - ".github/workflows/**"
+  pull_request:
+    branches: [main]
   workflow_dispatch:
 
 permissions:
@@ -24,6 +28,7 @@ jobs:
           gradle-version: "8.7"
 
       - name: Create signing key (first run only)
+        if: github.event_name != 'pull_request'
         run: |
           if [ ! -f debug.keystore ]; then
             keytool -genkeypair -keystore debug.keystore -storetype PKCS12 \
@@ -38,9 +43,20 @@ jobs:
           fi
 
       - name: Build APK
-        run: gradle assembleDebug --no-daemon --stacktrace -Dorg.gradle.jvmargs=-Xmx2g
+        env:
+          ONESIGNAL_APP_ID: ${{ secrets.ONESIGNAL_APP_ID }}
+        run: gradle assembleDebug --no-daemon --stacktrace -Dorg.gradle.jvmargs=-Xmx2g -PonesignalAppId="$ONESIGNAL_APP_ID"
+
+      - name: Upload test APK
+        if: github.event_name == 'pull_request'
+        uses: actions/upload-artifact@v4
+        with:
+          name: OXYGEN-native-push-test
+          path: app/build/outputs/apk/debug/app-debug.apk
+          if-no-files-found: error
 
       - name: Publish APK
+        if: github.event_name == 'push' && github.ref == 'refs/heads/main'
         env:
           GH_TOKEN: ${{ github.token }}
         run: |
