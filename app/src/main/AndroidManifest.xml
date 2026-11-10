@@ -61,6 +61,18 @@
             </intent-filter>
         </activity>
 
+        <receiver android:name=".ReminderReceiver" android:exported="false" />
+
+        <receiver
+            android:name=".ReminderBootReceiver"
+            android:enabled="true"
+            android:exported="false">
+            <intent-filter>
+                <action android:name="android.intent.action.BOOT_COMPLETED" />
+                <action android:name="android.intent.action.MY_PACKAGE_REPLACED" />
+            </intent-filter>
+        </receiver>
+
         <service
             android:name=".OxygenService"
             android:exported="false"
