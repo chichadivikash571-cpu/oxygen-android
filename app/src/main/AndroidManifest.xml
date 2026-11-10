@@ -11,6 +11,7 @@
     <uses-permission android:name="android.permission.SCHEDULE_EXACT_ALARM" />
     <uses-permission android:name="android.permission.RECEIVE_BOOT_COMPLETED" />
     <uses-permission android:name="android.permission.REQUEST_IGNORE_BATTERY_OPTIMIZATIONS" />
+    <uses-permission android:name="android.permission.USE_FULL_SCREEN_INTENT" />
 
     <queries>
         <intent>
@@ -46,6 +47,14 @@
         </activity>
 
         <activity
+            android:name=".IncomingCallActivity"
+            android:exported="false"
+            android:excludeFromRecents="true"
+            android:showWhenLocked="true"
+            android:turnScreenOn="true"
+            android:launchMode="singleTop" />
+
+        <activity
             android:name=".OverlayActivity"
             android:exported="true"
             android:theme="@android:style/Theme.Translucent.NoTitleBar"
@@ -64,6 +73,7 @@
         </activity>
 
         <receiver android:name=".ReminderReceiver" android:exported="false" />
+        <receiver android:name=".ScheduledCallActionReceiver" android:exported="false" />
 
         <receiver
             android:name=".ReminderBootReceiver"
