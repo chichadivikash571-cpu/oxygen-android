@@ -134,6 +134,14 @@ class ActiveCallActivity : Activity() {
         tts = TextToSpeech(this) { result ->
             if (result == TextToSpeech.SUCCESS) {
                 val engine = tts ?: return@TextToSpeech
+                try {
+                    engine.setAudioAttributes(
+                        android.media.AudioAttributes.Builder()
+                            .setUsage(android.media.AudioAttributes.USAGE_MEDIA)
+                            .setContentType(android.media.AudioAttributes.CONTENT_TYPE_SPEECH)
+                            .build()
+                    )
+                } catch (_: Exception) { }
                 var languageResult = engine.setLanguage(Locale.UK)
                 if (languageResult == TextToSpeech.LANG_MISSING_DATA || languageResult == TextToSpeech.LANG_NOT_SUPPORTED) {
                     languageResult = engine.setLanguage(Locale.US)
@@ -154,7 +162,8 @@ class ActiveCallActivity : Activity() {
         val reason = if (contextText.isBlank()) "The reminder details were not included in the call data."
             else "You asked me to remind you about: $contextText."
         val line = "Hello. This is OXYGEN. I am calling about your reminder: $titleText. $reason You can speak after I finish."
-        tts?.speak(line, TextToSpeech.QUEUE_FLUSH, null, "oxygen-call-greeting")
+        val speechParams = Bundle().apply { putFloat(TextToSpeech.Engine.KEY_PARAM_VOLUME, 1.0f) }
+        tts?.speak(line, TextToSpeech.QUEUE_FLUSH, speechParams, "oxygen-call-greeting")
     }
 
     private fun startListeningIfAllowed() {
@@ -187,7 +196,8 @@ class ActiveCallActivity : Activity() {
                             transcript = (transcript + "\nYou: " + said).takeLast(1600)
                             transcriptView.text = transcript
                             statusView.text = "Voice reply captured. Tap Mic to add another reply."
-                            tts?.speak("I heard you. Your voice reply is ready to send to our OXYGEN chat when you end this call.", TextToSpeech.QUEUE_FLUSH, null, "oxygen-call-ack")
+                            val speechParams = Bundle().apply { putFloat(TextToSpeech.Engine.KEY_PARAM_VOLUME, 1.0f) }
+                            tts?.speak("I heard you. Your voice reply is ready to send to our OXYGEN chat when you end this call.", TextToSpeech.QUEUE_FLUSH, speechParams, "oxygen-call-ack")
                         } else statusView.text = "I didn't catch that. Tap Mic to try again."
                     }
                     override fun onPartialResults(partialResults: Bundle?) {}
