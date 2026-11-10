@@ -184,8 +184,7 @@ class ActiveCallActivity : Activity() {
                         listening = false
                         val said = results?.getStringArrayList(SpeechRecognizer.RESULTS_RECOGNITION)?.firstOrNull().orEmpty()
                         if (said.isNotBlank()) {
-                            transcript = (transcript + "
-You: " + said).takeLast(1600)
+                            transcript = (transcript + "\nYou: " + said).takeLast(1600)
                             transcriptView.text = transcript
                             statusView.text = "Voice reply captured. Tap Mic to add another reply."
                             tts?.speak("I heard you. Your voice reply is ready to send to our OXYGEN chat when you end this call.", TextToSpeech.QUEUE_FLUSH, null, "oxygen-call-ack")
@@ -236,8 +235,7 @@ You: " + said).takeLast(1600)
         handler.removeCallbacks(ticker)
         val extraContext = buildString {
             append(contextText)
-            if (transcript.isNotBlank()) append("
-Voice conversation captured during call:\n").append(transcript)
+            if (transcript.isNotBlank()) append("\nVoice conversation captured during call:\n").append(transcript)
         }
         startActivity(Intent(this, MainActivity::class.java).apply {
             flags = Intent.FLAG_ACTIVITY_CLEAR_TOP or Intent.FLAG_ACTIVITY_SINGLE_TOP
