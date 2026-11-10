@@ -18,6 +18,7 @@ object LocalReminderScheduler {
     private const val PREFS = "oxygen_local_reminders"
     private const val KEY_ITEMS = "items"
     private const val KEY_DELIVERED_RUNS = "delivered_runs"
+    private const val KEY_DELIVERED_OCCURRENCES = "delivered_occurrences"
     private const val ACTION_FIRE = "ai.oxygen.app.ACTION_LOCAL_REMINDER"
 
     fun sync(context: Context, rawJson: String) {
@@ -48,16 +49,23 @@ object LocalReminderScheduler {
         for (i in 0 until clean.length()) schedule(context, clean.getJSONObject(i))
     }
 
-    fun notifyMissedRun(context: Context, runId: String, title: String, scheduledFor: String) {
-        if (runId.isBlank() || title.isBlank()) return
+    fun notifyMissedRun(context: Context, runId: String, taskId: String, title: String, scheduledFor: String) {
+        if (runId.isBlank() || taskId.isBlank() || title.isBlank()) return
         val prefs = context.getSharedPreferences(PREFS, Context.MODE_PRIVATE)
-        val delivered = (prefs.getStringSet(KEY_DELIVERED_RUNS, emptySet()) ?: emptySet()).toMutableSet()
-        if (delivered.contains(runId)) return
+        val occurrenceKey = "$taskId|$scheduledFor"
+        val delivered = (prefs.getStringSet(KEY_DELIVERED_OCCURRENCES, emptySet()) ?: emptySet()).toMutableSet()
+        if (delivered.contains(occurrenceKey)) return
         showNotification(context, "run:$runId", title, scheduledFor)
-        delivered.add(runId)
-        // Bound local bookkeeping so long-lived installs do not grow indefinitely.
-        val bounded = delivered.toList().takeLast(500).toSet()
-        prefs.edit().putStringSet(KEY_DELIVERED_RUNS, bounded).apply()
+        delivered.add(occurrenceKey)
+        prefs.edit().putStringSet(KEY_DELIVERED_OCCURRENCES, delivered.toList().takeLast(500).toSet()).apply()
+    }
+
+    private fun markOccurrenceDelivered(context: Context, taskId: String, scheduledFor: String) {
+        if (taskId.isBlank() || scheduledFor.isBlank()) return
+        val prefs = context.getSharedPreferences(PREFS, Context.MODE_PRIVATE)
+        val delivered = (prefs.getStringSet(KEY_DELIVERED_OCCURRENCES, emptySet()) ?: emptySet()).toMutableSet()
+        delivered.add("$taskId|$scheduledFor")
+        prefs.edit().putStringSet(KEY_DELIVERED_OCCURRENCES, delivered.toList().takeLast(500).toSet()).apply()
     }
 
     fun restore(context: Context) {
@@ -70,6 +78,7 @@ object LocalReminderScheduler {
         val title = intent.getStringExtra("title") ?: "OXYGEN reminder"
         val scheduledFor = intent.getStringExtra("scheduled_for") ?: ""
         showNotification(context, id, title, scheduledFor)
+        markOccurrenceDelivered(context, id, scheduledFor)
         val prefs = context.getSharedPreferences(PREFS, Context.MODE_PRIVATE)
         val items = JSONArray(prefs.getString(KEY_ITEMS, "[]") ?: "[]")
         val updated = JSONArray()
