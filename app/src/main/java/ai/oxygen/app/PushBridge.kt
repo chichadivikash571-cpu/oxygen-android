@@ -8,7 +8,7 @@ import kotlinx.coroutines.SupervisorJob
 import kotlinx.coroutines.launch
 
 /**
- * Small bridge for the OXYGEN WebView's native push opt-in.
+ * Small bridge for the OXYGEN WebView's native push opt-in and account identity.
  * MainActivity keeps only the OXYGEN production host inside this WebView.
  */
 class PushBridge(private val activity: MainActivity) {
@@ -25,6 +25,28 @@ class PushBridge(private val activity: MainActivity) {
                 OneSignal.Notifications.requestPermission(true)
             } catch (_: Exception) {
                 // Permission denial or SDK errors do not crash the WebView.
+            }
+        }
+    }
+
+    @JavascriptInterface
+    fun login(externalId: String) {
+        if (!isConfigured() || externalId.isBlank()) return
+        scope.launch {
+            try {
+                OneSignal.login(externalId)
+            } catch (_: Exception) {
+            }
+        }
+    }
+
+    @JavascriptInterface
+    fun logout() {
+        if (!isConfigured()) return
+        scope.launch {
+            try {
+                OneSignal.logout()
+            } catch (_: Exception) {
             }
         }
     }
