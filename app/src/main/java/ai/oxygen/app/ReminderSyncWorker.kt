@@ -60,6 +60,7 @@ class ReminderSyncWorker(context: Context, params: WorkerParameters) : Coroutine
                 LocalReminderScheduler.notifyMissedRun(
                     applicationContext,
                     run.optString("run_id"),
+                    run.optString("task_id"),
                     run.optString("title", "Scheduled reminder"),
                     run.optString("scheduled_for", "")
                 )
