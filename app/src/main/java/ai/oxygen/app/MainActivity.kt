@@ -13,6 +13,7 @@ import android.webkit.WebChromeClient
 import android.webkit.WebResourceRequest
 import android.webkit.WebView
 import android.webkit.WebViewClient
+import org.json.JSONObject
 
 class MainActivity : Activity() {
 
@@ -22,6 +23,7 @@ class MainActivity : Activity() {
         const val WEB_MIC_REQUEST = 4712
         const val BG_MIC_REQUEST = 4713
         const val BG_NOTIFY_REQUEST = 4714
+        const val EXTRA_REMINDER_TEXT = "oxygen_reminder_text"
     }
 
     private lateinit var web: WebView
@@ -30,6 +32,7 @@ class MainActivity : Activity() {
     private var pendingFileCallback: android.webkit.ValueCallback<Array<Uri>>? = null
     private var pageReady = false
     private var assistPending = false
+    private var pendingReminderText: String? = null
 
     @SuppressLint("SetJavaScriptEnabled")
     override fun onCreate(savedInstanceState: Bundle?) {
@@ -37,6 +40,7 @@ class MainActivity : Activity() {
         web = WebView(this)
         setContentView(web)
         assistPending = isAssist(intent)
+        pendingReminderText = intent?.getStringExtra(EXTRA_REMINDER_TEXT)
 
         web.settings.javaScriptEnabled = true
         web.settings.domStorageEnabled = true
@@ -91,6 +95,7 @@ class MainActivity : Activity() {
                         null
                     )
                     pageReady = true
+                    deliverPendingReminder()
                     if (assistPending) {
                         assistPending = false
                         view.postDelayed({ runAssist() }, 1800)
@@ -104,6 +109,8 @@ class MainActivity : Activity() {
         web.addJavascriptInterface(nativeVoice, "OxygenNative")
         web.addJavascriptInterface(BackgroundBridge(this), "OxygenBackground")
         web.addJavascriptInterface(DeviceBridge(this), "OxygenDevice")
+        web.addJavascriptInterface(PushBridge(this), "OxygenPush")
+        web.addJavascriptInterface(ReminderBridge(this), "OxygenReminders")
 
         if (savedInstanceState != null) {
             web.restoreState(savedInstanceState)
@@ -122,9 +129,19 @@ class MainActivity : Activity() {
     override fun onNewIntent(intent: Intent?) {
         super.onNewIntent(intent)
         setIntent(intent)
+        pendingReminderText = intent?.getStringExtra(EXTRA_REMINDER_TEXT) ?: pendingReminderText
+        if (pageReady) deliverPendingReminder()
         if (isAssist(intent)) {
             if (pageReady) web.postDelayed({ runAssist() }, 400) else assistPending = true
         }
+    }
+
+    private fun deliverPendingReminder() {
+        val text = pendingReminderText ?: return
+        if (!pageReady) return
+        pendingReminderText = null
+        val encoded = JSONObject.quote(text)
+        web.evaluateJavascript("window.oxygenShowReminder && window.oxygenShowReminder($encoded)", null)
     }
 
     private fun handleWebPermission(request: PermissionRequest) {
@@ -210,6 +227,7 @@ class MainActivity : Activity() {
         super.onResume()
         notifyBackgroundChanged()
         web.evaluateJavascript("window.oxygenDeviceChanged && window.oxygenDeviceChanged()", null)
+        deliverPendingReminder()
     }
 
     override fun onSaveInstanceState(outState: Bundle) {

@@ -3,6 +3,8 @@ plugins {
     id("org.jetbrains.kotlin.android")
 }
 
+val oneSignalAppId = providers.gradleProperty("onesignalAppId").orElse("").get()
+
 android {
     namespace = "ai.oxygen.app"
     compileSdk = 34
@@ -11,9 +13,12 @@ android {
         applicationId = "ai.oxygen.app"
         minSdk = 26
         targetSdk = 34
-        versionCode = 1
-        versionName = "0.1"
+        versionCode = 3
+        versionName = "0.3"
+        buildConfigField("String", "ONESIGNAL_APP_ID", "\"$oneSignalAppId\"")
     }
+
+    buildFeatures { buildConfig = true }
 
     signingConfigs {
         create("oxygen") {
@@ -24,17 +29,17 @@ android {
         }
     }
 
-    buildTypes {
-        getByName("debug") {
-            signingConfig = signingConfigs.getByName("oxygen")
-        }
-    }
+    buildTypes { getByName("debug") { signingConfig = signingConfigs.getByName("oxygen") } }
 
     compileOptions {
         sourceCompatibility = JavaVersion.VERSION_17
         targetCompatibility = JavaVersion.VERSION_17
     }
-    kotlinOptions {
-        jvmTarget = "17"
-    }
+    kotlinOptions { jvmTarget = "17" }
+}
+
+// Periodic sync is network-constrained and authenticated through the native reminder worker.
+dependencies {
+    implementation("com.onesignal:OneSignal:5.10.2")
+    implementation("androidx.work:work-runtime-ktx:2.9.1")
 }
