@@ -15,11 +15,7 @@ android {
         targetSdk = 34
         versionCode = 2
         versionName = "0.2"
-        buildConfigField(
-            "String",
-            "ONESIGNAL_APP_ID",
-            "\"\u0024{oneSignalAppId.replace("\\", "\\\\").replace("\"", "\\\"")}\""
-        )
+        buildConfigField("String", "ONESIGNAL_APP_ID", "\"$oneSignalAppId\"")
     }
 
     buildFeatures {
