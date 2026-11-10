@@ -3,6 +3,8 @@ plugins {
     id("org.jetbrains.kotlin.android")
 }
 
+val oneSignalAppId = providers.gradleProperty("onesignalAppId").orElse("").get()
+
 android {
     namespace = "ai.oxygen.app"
     compileSdk = 34
@@ -11,8 +13,13 @@ android {
         applicationId = "ai.oxygen.app"
         minSdk = 26
         targetSdk = 34
-        versionCode = 1
-        versionName = "0.1"
+        versionCode = 2
+        versionName = "0.2"
+        buildConfigField("String", "ONESIGNAL_APP_ID", "\"$oneSignalAppId\"")
+    }
+
+    buildFeatures {
+        buildConfig = true
     }
 
     signingConfigs {
@@ -37,4 +44,8 @@ android {
     kotlinOptions {
         jvmTarget = "17"
     }
+}
+
+dependencies {
+    implementation("com.onesignal:OneSignal:5.10.2")
 }
