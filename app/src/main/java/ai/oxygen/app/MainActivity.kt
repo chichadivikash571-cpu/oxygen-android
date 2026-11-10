@@ -155,8 +155,15 @@ class MainActivity : Activity() {
         val id = JSONObject.quote(call.first)
         val title = JSONObject.quote(call.second)
         val context = JSONObject.quote(call.third)
+        val greeting = JSONObject().put("segments", org.json.JSONArray().put(
+            JSONObject().put("lang", "en-GB").put("text",
+                "Hello. This is OXYGEN. Your scheduled session is ready. I have your task details. Let's get started.")
+        ))
+        voice?.speak(greeting.toString(), "scheduled-call-greeting-${call.first}")
         val prompt = JSONObject.quote("I accepted my scheduled OXYGEN session: ${call.second}. Please continue this task: ${call.third}")
-        web.evaluateJavascript("(function(){if(window.oxygenStartScheduledCall){window.oxygenStartScheduledCall($id,$title,$context);}else{var input=document.getElementById('input');var send=document.getElementById('send');if(input&&send){input.value=$prompt;input.dispatchEvent(new Event('input',{bubbles:true}));send.click();}}})()", null)
+        web.postDelayed({
+            web.evaluateJavascript("(function(){if(window.oxygenStartScheduledCall){window.oxygenStartScheduledCall($id,$title,$context);}else{var input=document.getElementById('input');var send=document.getElementById('send');if(input&&send){input.value=$prompt;input.dispatchEvent(new Event('input',{bubbles:true}));send.click();}}})()", null)
+        }, 1800)
     }
 
     private fun deliverPendingReminder() {
