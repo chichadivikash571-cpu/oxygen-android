@@ -137,7 +137,13 @@ class MainActivity : Activity() {
         setIntent(intent)
         pendingReminderText = intent?.getStringExtra(EXTRA_REMINDER_TEXT) ?: pendingReminderText
         readScheduledCall(intent)
-        if (pageReady) { deliverPendingReminder(); deliverPendingScheduledCall() }
+        if (pendingScheduledCall != null) {
+            // Accepted calls may arrive while scheduler.html is displayed. Load chat first.
+            pageReady = false
+            web.loadUrl("https://$HOST/index.html")
+        } else if (pageReady) {
+            deliverPendingReminder()
+        }
         if (isAssist(intent)) {
             if (pageReady) web.postDelayed({ runAssist() }, 400) else assistPending = true
         }
@@ -155,14 +161,21 @@ class MainActivity : Activity() {
         val id = JSONObject.quote(call.first)
         val title = JSONObject.quote(call.second)
         val context = JSONObject.quote(call.third)
+        val spokenReason = if (call.third.isBlank()) {
+            "Your scheduled reminder is ${call.second}. The reminder details were not included in the synced call data."
+        } else {
+            "Your scheduled reminder is ${call.second}. You asked me to remind you about: ${call.third}."
+        }
         val greeting = JSONObject().put("segments", org.json.JSONArray().put(
             JSONObject().put("lang", "en-GB").put("text",
-                "Hello. This is OXYGEN. Your scheduled session is ready. I have your task details. Let's get started.")
+                "Hello. This is OXYGEN. $spokenReason I am opening your chat now so you can reply.")
         ))
         voice?.speak(greeting.toString(), "scheduled-call-greeting-${call.first}")
-        val prompt = JSONObject.quote("I accepted my scheduled OXYGEN session: ${call.second}. Please continue this task: ${call.third}")
+        val prompt = JSONObject.quote(
+            "I accepted my scheduled OXYGEN reminder. Reminder title: ${call.second}. Reminder details/instruction: ${call.third}. First, briefly tell me why you called and repeat the reminder clearly. Then help me with it and wait for my reply."
+        )
         web.postDelayed({
-            web.evaluateJavascript("(function(){if(window.oxygenStartScheduledCall){window.oxygenStartScheduledCall($id,$title,$context);}else{var input=document.getElementById('input');var send=document.getElementById('send');if(input&&send){input.value=$prompt;input.dispatchEvent(new Event('input',{bubbles:true}));send.click();}}})()", null)
+            web.evaluateJavascript("(function(){var input=document.getElementById('input');var send=document.getElementById('send');var form=document.getElementById('form');if(!input||!send||!form){console.error('OXYGEN scheduled call: chat controls not found');return;}input.value=$prompt;input.dispatchEvent(new Event('input',{bubbles:true}));if(form.requestSubmit){form.requestSubmit(send);}else{send.click();}})()", null)
         }, 1800)
     }
 
