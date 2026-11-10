@@ -169,9 +169,9 @@ class IncomingCallActivity : Activity() {
         ScheduledCallNotifications.cancel(this, callId)
         val open = Intent(this, MainActivity::class.java).apply {
             flags = Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TOP or Intent.FLAG_ACTIVITY_SINGLE_TOP
-            putExtra(ScheduledCallNotifications.EXTRA_CALL_ID, callId)
-            putExtra(ScheduledCallNotifications.EXTRA_CALL_CONTEXT, callContext)
-            putExtra(ScheduledCallNotifications.EXTRA_CALL_TITLE, callTitle)
+            putExtra(MainActivity.EXTRA_SCHEDULED_CALL_ID, callId)
+            putExtra(MainActivity.EXTRA_SCHEDULED_CALL_CONTEXT, callContext)
+            putExtra(MainActivity.EXTRA_SCHEDULED_CALL_TITLE, callTitle)
         }
         startActivity(open)
         finish()
