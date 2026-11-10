@@ -123,7 +123,7 @@ class ActiveCallActivity : Activity() {
         setContentView(root)
     }
 
-    private fun weightParams() = LinearLayout.LayoutParams(0, 54, 1f).apply { margin = 5 }
+    private fun weightParams() = LinearLayout.LayoutParams(0, 54, 1f).apply { setMargins(5, 5, 5, 5) }
     private fun rounded(c: Int) = GradientDrawable().apply { setColor(c); cornerRadius = 28f }
     private fun control(label: String, action: () -> Unit) = Button(this).apply {
         text = label; isAllCaps = false; setTextColor(Color.WHITE)
