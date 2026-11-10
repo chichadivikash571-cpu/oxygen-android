@@ -190,11 +190,10 @@ class IncomingCallActivity : Activity() {
 
     private fun acceptCall() {
         stopCallAlert(); ScheduledCallNotifications.cancel(this, callId)
-        startActivity(Intent(this, MainActivity::class.java).apply {
-            flags = Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TOP or Intent.FLAG_ACTIVITY_SINGLE_TOP
-            putExtra(MainActivity.EXTRA_SCHEDULED_CALL_ID, callId)
-            putExtra(MainActivity.EXTRA_SCHEDULED_CALL_CONTEXT, callContext)
-            putExtra(MainActivity.EXTRA_SCHEDULED_CALL_TITLE, callTitle)
+        startActivity(Intent(this, ActiveCallActivity::class.java).apply {
+            putExtra(ScheduledCallNotifications.EXTRA_CALL_ID, callId)
+            putExtra(ScheduledCallNotifications.EXTRA_CALL_CONTEXT, callContext)
+            putExtra(ScheduledCallNotifications.EXTRA_CALL_TITLE, callTitle)
         })
         finish()
     }
