@@ -38,6 +38,7 @@ android {
     kotlinOptions { jvmTarget = "17" }
 }
 
+// Periodic sync is network-constrained and authenticated through the native reminder worker.
 dependencies {
     implementation("com.onesignal:OneSignal:5.10.2")
     implementation("androidx.work:work-runtime-ktx:2.9.1")
