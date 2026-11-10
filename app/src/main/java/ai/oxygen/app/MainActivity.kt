@@ -104,6 +104,7 @@ class MainActivity : Activity() {
         web.addJavascriptInterface(nativeVoice, "OxygenNative")
         web.addJavascriptInterface(BackgroundBridge(this), "OxygenBackground")
         web.addJavascriptInterface(DeviceBridge(this), "OxygenDevice")
+        web.addJavascriptInterface(PushBridge(this), "OxygenPush")
 
         if (savedInstanceState != null) {
             web.restoreState(savedInstanceState)
