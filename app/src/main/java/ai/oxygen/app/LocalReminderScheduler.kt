@@ -183,7 +183,7 @@ object LocalReminderScheduler {
                 }
                 "monthly" -> {
                     val day = config.optInt("day_of_month", current.dayOfMonth).coerceIn(1, 31)
-                    var candidate = base.withDayOfMonth(1).plusMonths(1)
+                    var candidate = base.withDayOfMonth(1).plusMonths(interval.toLong())
                     candidate = candidate.withDayOfMonth(minOf(day, candidate.toLocalDate().lengthOfMonth()))
                     candidate
                 }
