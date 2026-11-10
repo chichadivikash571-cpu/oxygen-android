@@ -17,7 +17,6 @@ import java.time.Instant
 object LocalReminderScheduler {
     private const val PREFS = "oxygen_local_reminders"
     private const val KEY_ITEMS = "items"
-    private const val KEY_DELIVERED_RUNS = "delivered_runs"
     private const val KEY_DELIVERED_OCCURRENCES = "delivered_occurrences"
     private const val ACTION_FIRE = "ai.oxygen.app.ACTION_LOCAL_REMINDER"
 
@@ -55,9 +54,10 @@ object LocalReminderScheduler {
         val occurrenceKey = "$taskId|$scheduledFor"
         val delivered = (prefs.getStringSet(KEY_DELIVERED_OCCURRENCES, emptySet()) ?: emptySet()).toMutableSet()
         if (delivered.contains(occurrenceKey)) return
-        showNotification(context, "run:$runId", title, scheduledFor)
-        delivered.add(occurrenceKey)
-        prefs.edit().putStringSet(KEY_DELIVERED_OCCURRENCES, delivered.toList().takeLast(500).toSet()).apply()
+        if (showNotification(context, "run:$runId", title, scheduledFor)) {
+            delivered.add(occurrenceKey)
+            prefs.edit().putStringSet(KEY_DELIVERED_OCCURRENCES, delivered.toList().takeLast(500).toSet()).apply()
+        }
     }
 
     private fun markOccurrenceDelivered(context: Context, taskId: String, scheduledFor: String) {
@@ -77,8 +77,7 @@ object LocalReminderScheduler {
         val id = intent.getStringExtra("task_id") ?: return
         val title = intent.getStringExtra("title") ?: "OXYGEN reminder"
         val scheduledFor = intent.getStringExtra("scheduled_for") ?: ""
-        showNotification(context, id, title, scheduledFor)
-        markOccurrenceDelivered(context, id, scheduledFor)
+        if (showNotification(context, id, title, scheduledFor)) markOccurrenceDelivered(context, id, scheduledFor)
         val prefs = context.getSharedPreferences(PREFS, Context.MODE_PRIVATE)
         val items = JSONArray(prefs.getString(KEY_ITEMS, "[]") ?: "[]")
         val updated = JSONArray()
@@ -132,8 +131,8 @@ object LocalReminderScheduler {
         )
     }
 
-    private fun showNotification(context: Context, id: String, title: String, whenText: String) {
-        if (Build.VERSION.SDK_INT >= 33 && context.checkSelfPermission(android.Manifest.permission.POST_NOTIFICATIONS) != PackageManager.PERMISSION_GRANTED) return
+    private fun showNotification(context: Context, id: String, title: String, whenText: String): Boolean {
+        if (Build.VERSION.SDK_INT >= 33 && context.checkSelfPermission(android.Manifest.permission.POST_NOTIFICATIONS) != PackageManager.PERMISSION_GRANTED) return false
         val manager = context.getSystemService(android.app.NotificationManager::class.java)
         val channelId = "oxygen_local_reminders"
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O && manager.getNotificationChannel(channelId) == null) {
@@ -158,6 +157,7 @@ object LocalReminderScheduler {
             .setCategory(android.app.Notification.CATEGORY_REMINDER)
             .setPriority(android.app.Notification.PRIORITY_HIGH).build()
         manager.notify(id.hashCode(), notification)
+        return true
     }
 
     private fun nextRecurring(item: JSONObject, scheduledFor: String): String? {
