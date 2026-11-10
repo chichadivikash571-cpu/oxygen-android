@@ -222,6 +222,23 @@ class NativeVoice(private val activity: Activity, private val web: WebView) {
         if (result == TextToSpeech.ERROR) playNext()
     }
 
+    /* ---------- device-local speech vocabulary ---------- */
+
+    @JavascriptInterface
+    fun getVoiceCorrections(): String = VoicePersonalization.getJson(activity)
+
+    @JavascriptInterface
+    fun saveVoiceCorrection(heard: String, intended: String): Boolean =
+        VoicePersonalization.save(activity, heard, intended)
+
+    @JavascriptInterface
+    fun deleteVoiceCorrection(heard: String): Boolean =
+        VoicePersonalization.delete(activity, heard)
+
+    @JavascriptInterface
+    fun applyVoiceCorrections(text: String): String =
+        VoicePersonalization.apply(activity, text)
+
     /* ---------- listening ---------- */
 
     @JavascriptInterface
