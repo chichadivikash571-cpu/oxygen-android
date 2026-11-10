@@ -24,6 +24,9 @@ class MainActivity : Activity() {
         const val BG_MIC_REQUEST = 4713
         const val BG_NOTIFY_REQUEST = 4714
         const val EXTRA_REMINDER_TEXT = "oxygen_reminder_text"
+        const val EXTRA_SCHEDULED_CALL_ID = "oxygen_scheduled_call_id"
+        const val EXTRA_SCHEDULED_CALL_CONTEXT = "oxygen_scheduled_call_context"
+        const val EXTRA_SCHEDULED_CALL_TITLE = "oxygen_scheduled_call_title"
     }
 
     private lateinit var web: WebView
@@ -33,6 +36,7 @@ class MainActivity : Activity() {
     private var pageReady = false
     private var assistPending = false
     private var pendingReminderText: String? = null
+    private var pendingScheduledCall: Triple<String, String, String>? = null
 
     @SuppressLint("SetJavaScriptEnabled")
     override fun onCreate(savedInstanceState: Bundle?) {
@@ -41,6 +45,7 @@ class MainActivity : Activity() {
         setContentView(web)
         assistPending = isAssist(intent)
         pendingReminderText = intent?.getStringExtra(EXTRA_REMINDER_TEXT)
+        readScheduledCall(intent)
 
         web.settings.javaScriptEnabled = true
         web.settings.domStorageEnabled = true
@@ -96,6 +101,7 @@ class MainActivity : Activity() {
                     )
                     pageReady = true
                     deliverPendingReminder()
+                    deliverPendingScheduledCall()
                     if (assistPending) {
                         assistPending = false
                         view.postDelayed({ runAssist() }, 1800)
@@ -130,10 +136,27 @@ class MainActivity : Activity() {
         super.onNewIntent(intent)
         setIntent(intent)
         pendingReminderText = intent?.getStringExtra(EXTRA_REMINDER_TEXT) ?: pendingReminderText
-        if (pageReady) deliverPendingReminder()
+        readScheduledCall(intent)
+        if (pageReady) { deliverPendingReminder(); deliverPendingScheduledCall() }
         if (isAssist(intent)) {
             if (pageReady) web.postDelayed({ runAssist() }, 400) else assistPending = true
         }
+    }
+
+    private fun readScheduledCall(intent: Intent?) {
+        val id = intent?.getStringExtra(EXTRA_SCHEDULED_CALL_ID) ?: return
+        pendingScheduledCall = Triple(id, intent.getStringExtra(EXTRA_SCHEDULED_CALL_TITLE).orEmpty(), intent.getStringExtra(EXTRA_SCHEDULED_CALL_CONTEXT).orEmpty())
+    }
+
+    private fun deliverPendingScheduledCall() {
+        val call = pendingScheduledCall ?: return
+        if (!pageReady) return
+        pendingScheduledCall = null
+        val id = JSONObject.quote(call.first)
+        val title = JSONObject.quote(call.second)
+        val context = JSONObject.quote(call.third)
+        val prompt = JSONObject.quote("I accepted my scheduled OXYGEN session: ${call.second}. Please continue this task: ${call.third}")
+        web.evaluateJavascript("(function(){if(window.oxygenStartScheduledCall){window.oxygenStartScheduledCall($id,$title,$context);}else{var input=document.getElementById('input');var send=document.getElementById('send');if(input&&send){input.value=$prompt;input.dispatchEvent(new Event('input',{bubbles:true}));send.click();}}})()", null)
     }
 
     private fun deliverPendingReminder() {

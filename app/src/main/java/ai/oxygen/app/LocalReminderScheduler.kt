@@ -39,6 +39,8 @@ object LocalReminderScheduler {
                 put("schedule_type", item.optString("schedule_type", "once"))
                 put("schedule_config", item.optJSONObject("schedule_config") ?: JSONObject())
                 put("timezone", item.optString("timezone", "Asia/Kolkata"))
+                put("instruction", item.optString("instruction", ""))
+                put("is_call", item.optJSONObject("schedule_config")?.optString("delivery_mode") == "call" || item.optJSONObject("schedule_config")?.optBoolean("scheduled_call", false) == true)
             })
         }
         val prefs = context.getSharedPreferences(PREFS, Context.MODE_PRIVATE)
@@ -77,7 +79,20 @@ object LocalReminderScheduler {
         val id = intent.getStringExtra("task_id") ?: return
         val title = intent.getStringExtra("title") ?: "OXYGEN reminder"
         val scheduledFor = intent.getStringExtra("scheduled_for") ?: ""
-        if (showNotification(context, id, title, scheduledFor)) markOccurrenceDelivered(context, id, scheduledFor)
+        val isCall = intent.getBooleanExtra("is_call", false)
+        val callContext = intent.getStringExtra("call_context").orEmpty()
+        val online = try {
+            val cm = context.getSystemService(android.net.ConnectivityManager::class.java)
+            val network = cm.activeNetwork
+            network != null && cm.getNetworkCapabilities(network)?.hasCapability(android.net.NetworkCapabilities.NET_CAPABILITY_INTERNET) == true
+        } catch (_: Exception) { false }
+        val delivered = if (isCall && online && (Build.VERSION.SDK_INT < 33 || context.checkSelfPermission(android.Manifest.permission.POST_NOTIFICATIONS) == PackageManager.PERMISSION_GRANTED)) {
+            ScheduledCallNotifications.showIncoming(context, id + "|" + scheduledFor, title, callContext)
+            true
+        } else {
+            showNotification(context, id, if (isCall) "$title (Open OXYGEN to start your scheduled session)" else title, scheduledFor)
+        }
+        if (delivered) markOccurrenceDelivered(context, id, scheduledFor)
         val prefs = context.getSharedPreferences(PREFS, Context.MODE_PRIVATE)
         val items = JSONArray(prefs.getString(KEY_ITEMS, "[]") ?: "[]")
         val updated = JSONArray()
@@ -106,7 +121,7 @@ object LocalReminderScheduler {
         val parsedEpoch = try { Instant.parse(fireAtText).toEpochMilli() } catch (_: Exception) { return }
         val epoch = maxOf(parsedEpoch, System.currentTimeMillis() + 1_000L)
         val alarm = context.getSystemService(AlarmManager::class.java)
-        val pending = pendingIntent(context, id, title, whenText)
+        val pending = pendingIntent(context, id, title, whenText, item.optBoolean("is_call"), item.optString("instruction"))
         try {
             if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S && !alarm.canScheduleExactAlarms())
                 alarm.setAndAllowWhileIdle(AlarmManager.RTC_WAKEUP, epoch, pending)
@@ -121,9 +136,10 @@ object LocalReminderScheduler {
         context.getSystemService(AlarmManager::class.java).cancel(pendingIntent(context, id, "", ""))
     }
 
-    private fun pendingIntent(context: Context, id: String, title: String, whenText: String): PendingIntent {
+    private fun pendingIntent(context: Context, id: String, title: String, whenText: String, isCall: Boolean = false, callContext: String = ""): PendingIntent {
         val intent = Intent(context, ReminderReceiver::class.java).apply {
             action = ACTION_FIRE; putExtra("task_id", id); putExtra("title", title); putExtra("scheduled_for", whenText)
+            putExtra("is_call", isCall); putExtra("call_context", callContext)
         }
         return PendingIntent.getBroadcast(
             context, id.hashCode(), intent,
