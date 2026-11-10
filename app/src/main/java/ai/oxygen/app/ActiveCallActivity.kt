@@ -191,7 +191,8 @@ class ActiveCallActivity : Activity() {
                     override fun onError(error: Int) { listening = false; if (!muted) statusView.text = "Tap Mic to try speaking again" }
                     override fun onResults(results: Bundle?) {
                         listening = false
-                        val said = results?.getStringArrayList(SpeechRecognizer.RESULTS_RECOGNITION)?.firstOrNull().orEmpty()
+                        val rawSaid = results?.getStringArrayList(SpeechRecognizer.RESULTS_RECOGNITION)?.firstOrNull().orEmpty()
+                        val said = VoicePersonalization.apply(this@ActiveCallActivity, rawSaid)
                         if (said.isNotBlank()) {
                             transcript = (transcript + "\nYou: " + said).takeLast(1600)
                             transcriptView.text = transcript
